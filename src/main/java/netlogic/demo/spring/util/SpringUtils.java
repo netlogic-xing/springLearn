@@ -7,10 +7,7 @@ import netlogic.demo.spring.annotation.Autowired;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,6 +45,15 @@ public class SpringUtils {
             return method.invoke(target, args);
         } catch (Exception e) {
             throw new BeanInitializationException(e);
+        }
+    }
+
+    public static void setField(Field field, Object target, Object value){
+        try {
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (IllegalAccessException e) {
+             throw new BeanInitializationException(e);
         }
     }
 

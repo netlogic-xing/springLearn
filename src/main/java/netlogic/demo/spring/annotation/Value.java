@@ -1,11 +1,11 @@
-package netlogic.demo.spring.web.annotation;
+package netlogic.demo.spring.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
-@Target(ElementType.PARAMETER)
+@Target({ElementType.FIELD, ElementType.CONSTRUCTOR})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface RequestBody {
+public @interface Value {
+   String value();
 }

@@ -1,16 +1,17 @@
 package netlogic.demo.spring.config;
 
+import com.google.common.base.Strings;
+import netlogic.demo.spring.BeanNotFoundException;
 import netlogic.demo.spring.annotation.Bean;
 import netlogic.demo.spring.annotation.Configuration;
 import netlogic.demo.spring.annotation.Import;
 import netlogic.demo.spring.bean.BeanDefinition;
 import netlogic.demo.spring.context.Context;
 import netlogic.demo.spring.util.SpringUtils;
+import org.reflections.ReflectionUtils;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class BeanConfig {
@@ -20,6 +21,7 @@ public class BeanConfig {
     private Map<String, BeanDefinition> beanDefinitions = new HashMap<>();
 
     private Context context = new Context();
+    private Properties properties = new Properties();
 
     public BeanConfig(Class<?> configClass) {
         // Add bean defined within the config class
@@ -30,6 +32,24 @@ public class BeanConfig {
         if (configuration == null) {
             return;
         }
+
+        String[] propertiesURIs = configuration.properties();
+        Arrays.stream(propertiesURIs).filter(uri -> !Strings.isNullOrEmpty(uri)).forEach(uri -> {
+            if(uri.startsWith("classpath:")){
+                uri = uri.substring("classpath:".length());
+                try {
+                    properties.load(this.getClass().getResourceAsStream(uri));
+                } catch (IOException e) {
+                    throw new PropertiesLoadException(e);
+                }
+            }
+        });
+
+        //add properties
+        properties.forEach((key, val)->{
+            addBean((String) key, val);
+        });
+
         //Add bean from package
         Arrays.stream(configuration.scanPackages()).map(p -> buildBeanDefinitionsFromPackage(p)).forEach(bd -> {
             beanDefinitions.putAll(bd);
@@ -41,6 +61,11 @@ public class BeanConfig {
                 beanDefinitions.putAll(buildBeanDefinitionsFromConfigClass(importConfigClass));
             });
         }
+        //Add special bean context self.
+        addBean(context);
+    }
+
+    public void buildContext() {
         createBeans(beanDefinitions.values().stream().toList());
         beansInject(beanDefinitions.values().stream().toList());
         beansPostConstruct(beanDefinitions.values().stream().toList());
@@ -48,22 +73,29 @@ public class BeanConfig {
 
     private void createBeans(List<BeanDefinition> currentBds) {
         currentBds.forEach(bd -> {
-            createBeans(bd.getDependencies().stream().map(name -> beanDefinitions.get(name)).toList());
+            createBeans(bd.getDependencies().stream().map(name -> getBeanDefinition(name)).toList());
             bd.createInstance(context);
             context.addBean(bd);
         });
     }
 
+    private BeanDefinition getBeanDefinition(String name) {
+        if(!beanDefinitions.containsKey(name)){
+            throw new BeanNotFoundException(name);
+        }
+        return beanDefinitions.get(name);
+    }
+
     private void beansInject(List<BeanDefinition> currentBds) {
         currentBds.forEach(bd -> {
-            beansInject(bd.getDependencies().stream().map(name -> beanDefinitions.get(name)).toList());
+            beansInject(bd.getDependencies().stream().map(name -> getBeanDefinition(name)).toList());
             bd.callAutowiredMethods(context);
         });
     }
 
     private void beansPostConstruct(List<BeanDefinition> currentBds) {
         currentBds.forEach(bd -> {
-            beansPostConstruct(bd.getDependencies().stream().map(name -> beanDefinitions.get(name)).toList());
+            beansPostConstruct(bd.getDependencies().stream().map(name -> getBeanDefinition(name)).toList());
             bd.callPostConstruct();
         });
     }
@@ -100,6 +132,20 @@ public class BeanConfig {
                 }).collect(Collectors.toMap(b -> b.getName(), b -> b));
         bd.put(root.getName(), root);
         return bd;
+    }
+
+    /**
+     * Add bean to context directly. Used for some special objects.
+     *
+     * @param name
+     * @param bean
+     */
+    public void addBean(String name, Object bean) {
+        beanDefinitions.put(name, new BeanDefinition(name, bean.getClass(), new Class[0], () -> bean));
+    }
+
+    public void addBean(Object bean) {
+        addBean(bean.getClass().getName(), bean);
     }
 
     public Context getContext() {

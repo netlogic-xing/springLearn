@@ -10,4 +10,7 @@ import java.lang.annotation.Target;
 public @interface RequestMapping {
     String value();
     String method() default "GET";
+
+    String encoding() default "UTF-8";
+
 }

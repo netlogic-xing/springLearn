@@ -3,6 +3,7 @@ package netlogic.demo.spring.bean;
 import netlogic.demo.spring.annotation.Autowired;
 import netlogic.demo.spring.annotation.PostConstruct;
 import netlogic.demo.spring.BeanInitializationException;
+import netlogic.demo.spring.annotation.Value;
 import netlogic.demo.spring.context.Context;
 import netlogic.demo.spring.util.SpringUtils;
 
@@ -74,6 +75,9 @@ public class BeanDefinition {
         if(beanInjectionCompleted){
            return;
         }
+        autowiredFields.forEach((f,dep)->{
+            SpringUtils.setField(f, beanInstance, context.getBean(dep));
+        });
         autowiredMethods.forEach((m,deps)->{
             SpringUtils.invoke(m,beanInstance, context.getBeans(deps.toArray(new String[0])));
         });
@@ -108,6 +112,10 @@ public class BeanDefinition {
         autowiredFields = Arrays.stream(this.type.getDeclaredFields())
                 .filter(f -> f.isAnnotationPresent(Autowired.class))
                 .collect(Collectors.toMap(f -> f, f -> SpringUtils.getBeanName(f, f.getType().getName())));
+        Map<Field, String> valueFields = Arrays.stream(this.type.getDeclaredFields())
+                .filter(f -> f.isAnnotationPresent(Value.class))
+                .collect(Collectors.toMap(f -> f, f -> f.getAnnotation(Value.class).value()));
+        autowiredFields.putAll(valueFields);
         autowiredMethods = Arrays.stream(this.type.getDeclaredMethods())
                 .filter(m -> m.isAnnotationPresent(Autowired.class))
                 .collect(Collectors.toMap(m -> m, m -> getParameterDependencies(m)));

@@ -1,7 +1,11 @@
 package netlogic.demo.spring.example.external;
 
+import netlogic.demo.spring.annotation.Value;
+
 public class DataSource {
     private String name;
+    @Value("spring.url")
+    private String url;
     private Driver driver;
 
     public Driver getDriver() {
@@ -24,7 +28,7 @@ public class DataSource {
     public String toString() {
         return "DataSource{" +
                 "name='" + name + '\'' +
-                ", driver=" + driver +
+                ", driver=" + driver + ", url=" + url +
                 '}';
     }
 }

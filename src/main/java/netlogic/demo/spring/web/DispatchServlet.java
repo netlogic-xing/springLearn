@@ -7,6 +7,7 @@ import netlogic.demo.spring.config.BeanConfig;
 import netlogic.demo.spring.web.annotation.Controller;
 import netlogic.demo.spring.web.annotation.RequestMapping;
 import netlogic.demo.spring.web.annotation.WebConfiguration;
+import netlogic.demo.spring.web.base.BeanContextHolder;
 import netlogic.demo.spring.web.base.RequestHandler;
 import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
@@ -79,6 +80,12 @@ public class DispatchServlet extends HttpServlet {
         Class<?> webConfigClass = classes.stream().findFirst().orElseThrow(() -> new WebConfigNotFoundException("No class annotated by @WebConfiguration Found!"));
         log("Using web config class: " + webConfigClass.getName());
         beanConfig = new BeanConfig(webConfigClass);
+        //直接注入servletConfig和servletContext
+        beanConfig.addBean(this.getServletConfig());
+        beanConfig.addBean(this.getServletContext());
+        beanConfig.buildContext();
+        //把BeanContext放到静态类方便后续方法中使用
+        BeanContextHolder.setContext(beanConfig.getContext());
         controllerMethods = HashBasedTable.create();
         List<?> controllers = beanConfig.getContext().getBeansByAnnotation(Controller.class);
         controllers.stream().forEach(controller -> {

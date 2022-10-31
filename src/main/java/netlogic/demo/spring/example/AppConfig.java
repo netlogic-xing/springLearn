@@ -5,7 +5,7 @@ import netlogic.demo.spring.annotation.Configuration;
 import netlogic.demo.spring.example.external.DataSource;
 import netlogic.demo.spring.example.external.Driver;
 
-@Configuration(scanPackages = {"netlogic.demo.spring.example.model","netlogic.demo.spring.example.service"})
+@Configuration(scanPackages = {"netlogic.demo.spring.example.model","netlogic.demo.spring.example.service"}, properties = "classpath:/application.properties")
 public class AppConfig {
 
     @Bean
