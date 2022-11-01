@@ -11,6 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Bean容器类
+ */
 public class Context {
     private Map<String, Object> beans = new HashMap<>();
 

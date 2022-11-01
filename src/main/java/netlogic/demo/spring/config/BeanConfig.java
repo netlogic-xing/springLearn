@@ -14,6 +14,9 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * JavaConfig类解析器，解析配置类，生成BeanDefinition集合，并最终生成Context
+ */
 public class BeanConfig {
     /**
      * All beans defined here
@@ -32,7 +35,7 @@ public class BeanConfig {
         if (configuration == null) {
             return;
         }
-
+        //处理注入的属性文件
         String[] propertiesURIs = configuration.properties();
         Arrays.stream(propertiesURIs).filter(uri -> !Strings.isNullOrEmpty(uri)).forEach(uri -> {
             if(uri.startsWith("classpath:")){

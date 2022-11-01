@@ -24,3 +24,5 @@ web.annotation/web.base/web.view
 3. web.view包含对各类view的实现
 ### boot(springboot)
 boot部分演示springboot的实现，主要包括一个嵌入式的jetty服务器和快速启动的配置
+
+>注意：本项目的框架，Bean暂时不支持scope的概念，所有bean的是单例模式。暂时未对Bean间的依赖做深入分析。

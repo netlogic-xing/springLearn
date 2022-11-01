@@ -9,6 +9,9 @@ import org.eclipse.jetty.servlet.ServletHandler;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServlet;
 
+/**
+ * 演示性嵌入式web服务器
+ */
 public class JettyServer {
     private Server server;
     private ServletContextHandler servletHandler = new ServletContextHandler(ServletContextHandler.SESSIONS);
