@@ -1,4 +1,4 @@
-package netlogic.demo.spring.example.external;
+package netlogic.demo.spring.iocexample.external;
 
 public class Driver {
     private String name;

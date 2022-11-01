@@ -1,9 +1,11 @@
-package netlogic.demo.spring.web;
+package netlogic.demo.spring.web.base;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import netlogic.demo.spring.config.BeanConfig;
+import netlogic.demo.spring.web.ControllerConfigException;
+import netlogic.demo.spring.web.WebConfigNotFoundException;
 import netlogic.demo.spring.web.annotation.Controller;
 import netlogic.demo.spring.web.annotation.RequestMapping;
 import netlogic.demo.spring.web.annotation.WebConfiguration;

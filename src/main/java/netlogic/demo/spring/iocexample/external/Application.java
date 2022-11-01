@@ -1,8 +1,8 @@
-package netlogic.demo.spring.example.external;
+package netlogic.demo.spring.iocexample.external;
 
 import netlogic.demo.spring.config.BeanConfig;
-import netlogic.demo.spring.example.AppConfig;
-import netlogic.demo.spring.example.service.HostService;
+import netlogic.demo.spring.iocexample.AppConfig;
+import netlogic.demo.spring.iocexample.service.HostService;
 
 public class Application {
     public static void main(String[] args) {

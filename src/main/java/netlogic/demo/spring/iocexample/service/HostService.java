@@ -1,9 +1,9 @@
-package netlogic.demo.spring.example.service;
+package netlogic.demo.spring.iocexample.service;
 
 import netlogic.demo.spring.annotation.Autowired;
 import netlogic.demo.spring.annotation.Bean;
 import netlogic.demo.spring.annotation.PostConstruct;
-import netlogic.demo.spring.example.external.DataSource;
+import netlogic.demo.spring.iocexample.external.DataSource;
 
 @Bean
 public class HostService {

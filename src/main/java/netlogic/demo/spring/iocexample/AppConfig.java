@@ -1,9 +1,9 @@
-package netlogic.demo.spring.example;
+package netlogic.demo.spring.iocexample;
 
 import netlogic.demo.spring.annotation.Bean;
 import netlogic.demo.spring.annotation.Configuration;
-import netlogic.demo.spring.example.external.DataSource;
-import netlogic.demo.spring.example.external.Driver;
+import netlogic.demo.spring.iocexample.external.DataSource;
+import netlogic.demo.spring.iocexample.external.Driver;
 
 @Configuration(scanPackages = {"netlogic.demo.spring.example.model","netlogic.demo.spring.example.service"}, properties = "classpath:/application.properties")
 public class AppConfig {

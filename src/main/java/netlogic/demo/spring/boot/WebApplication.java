@@ -1,7 +1,7 @@
-package netlogic.demo.spring;
+package netlogic.demo.spring.boot;
 
 import netlogic.demo.spring.boot.JettyServer;
-import netlogic.demo.spring.web.DispatchServlet;
+import netlogic.demo.spring.web.base.DispatchServlet;
 
 public class WebApplication {
     private JettyServer jettyServer;
