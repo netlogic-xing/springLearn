@@ -35,7 +35,7 @@ public class ResultHandler {
             return;
         }
         //返回类型为Map，并且以Model标注
-        if (method.getReturnType().isAnnotationPresent(Model.class)
+        if (method.isAnnotationPresent(Model.class)
                 && Map.class.isAssignableFrom(method.getReturnType())) {
             String path = method.getName();
             Model model = method.getAnnotation(Model.class);

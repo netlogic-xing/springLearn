@@ -13,6 +13,8 @@ import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;
 
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -81,8 +83,8 @@ public class DispatchServlet extends HttpServlet {
         log("Using web config class: " + webConfigClass.getName());
         beanConfig = new BeanConfig(webConfigClass);
         //直接注入servletConfig和servletContext
-        beanConfig.addBean(this.getServletConfig());
-        beanConfig.addBean(this.getServletContext());
+        beanConfig.addBean(ServletConfig.class.getName(), this.getServletConfig());
+        beanConfig.addBean(ServletContext.class.getName(), this.getServletContext());
         beanConfig.buildContext();
         //把BeanContext放到静态类方便后续方法中使用
         BeanContextHolder.setContext(beanConfig.getContext());

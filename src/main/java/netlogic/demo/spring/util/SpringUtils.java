@@ -1,8 +1,10 @@
 package netlogic.demo.spring.util;
 
+import com.google.common.base.Strings;
 import jdk.dynalink.beans.StaticClass;
 import netlogic.demo.spring.BeanInitializationException;
 import netlogic.demo.spring.annotation.Autowired;
+import netlogic.demo.spring.annotation.Value;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -17,6 +19,10 @@ public class SpringUtils {
         Autowired autowired = p.getAnnotation(Autowired.class);
         if (autowired != null && autowired.name() != null && !autowired.name().equals("")) {
             name = autowired.name();
+        }
+        Value value = p.getAnnotation(Value.class);
+        if(value != null && !Strings.isNullOrEmpty(value.value())){
+            name = value.value();
         }
         if (name == null) {
             name = defaultName;
