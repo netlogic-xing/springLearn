@@ -62,7 +62,7 @@ public class SpringUtils {
              throw new BeanInitializationException(e);
         }
     }
-
+    //此方法可用Reflections改造
     public static Set<Class<?>> findAllClassesUsingClassLoader(String packageName) {
         InputStream stream = ClassLoader.getSystemClassLoader()
                 .getResourceAsStream(packageName.replaceAll("[.]", "/"));

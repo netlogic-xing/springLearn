@@ -2,13 +2,13 @@ package netlogic.demo.spring.bean;
 
 import netlogic.demo.spring.annotation.Autowired;
 import netlogic.demo.spring.annotation.PostConstruct;
-import netlogic.demo.spring.BeanInitializationException;
 import netlogic.demo.spring.annotation.Value;
 import netlogic.demo.spring.context.Context;
 import netlogic.demo.spring.util.SpringUtils;
 
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -28,9 +28,9 @@ public class BeanDefinition {
     private Supplier<?> beanCreator;
 
     //所有标注为@Autowired和@Value的field
-    private Map<Field, String> autowiredFields = new HashMap<>();
+    private Map<Field, BeanExtractor> autowiredFields = new HashMap<>();
     //所有标注为@Autowired的方法
-    private Map<Method, List<String>> autowiredMethods = new HashMap<>();
+    private Map<Method, List<BeanExtractor>> autowiredMethods = new HashMap<>();
     //标注为@PostConstruct的方法
     private List<Method> initMethods = new ArrayList<>();
     //此BeanDefinition生成的实例（单例），一个BeanInstance不为空，表示bean实例已经生成，可以作为被依赖相注入到别的Bean。但其功能不一定
@@ -68,15 +68,16 @@ public class BeanDefinition {
 
     /**
      * 用于在生成JavaConfig中@Bean标注的方法定义的Bean
-     * @param name Bean名称
-     * @param clazz Bean类型
+     *
+     * @param name         Bean名称
+     * @param clazz        Bean类型
      * @param dependencies 生成Bean的方法参数，假定全部都能在Context中找到
-     * @param beanCreator 闭包，包裹生成Bean的方法及参数
+     * @param beanCreator  闭包，包裹生成Bean的方法及参数
      */
     public BeanDefinition(String name, Class<?> clazz, Class<?>[] dependencies, Supplier<?> beanCreator) {
         this(name, clazz);
         this.beanCreator = beanCreator;
-        this.dependencies.addAll(Arrays.stream(dependencies).map(c->SpringUtils.getBeanName(c, c.getName())).toList());
+        this.dependencies.addAll(Arrays.stream(dependencies).map(c -> SpringUtils.getBeanName(c, c.getName())).toList());
     }
 
     public String getName() {
@@ -84,40 +85,41 @@ public class BeanDefinition {
     }
 
     public void createInstance(Context context) {
-        if(beanInstance == null&&beanCreator != null){//优先采用bean工厂闭包生成Bean
+        if (beanInstance == null && beanCreator != null) {//优先采用bean工厂闭包生成Bean
             beanInstance = beanCreator.get();
         }
         if (beanInstance == null && constructor != null) {//如果有标注为@Autowired的有参构造函数，则采用此构造函数生成bean
-            beanInstance = SpringUtils.newInstance(constructor, context.getBeans(constructor.getParameterTypes()));
+            beanInstance = SpringUtils.newInstance(constructor, getParameterInjectors(constructor).stream().map(p -> p.extract(context)).toArray());
         }
         createInstance();//默认采用无参构造函数生成bean
     }
 
     /**
      * 为所以标注为@Autowired和@Value的Field注入对应Bean然后在调用标注为@Autowired的方法
+     *
      * @param context
      */
-    public void callAutowiredMethods(Context context){
-        if(beanInjectionCompleted){
-           return;
+    public void callAutowiredMethods(Context context) {
+        if (beanInjectionCompleted) {
+            return;
         }
-        autowiredFields.forEach((f,dep)->{
-            SpringUtils.setField(f, beanInstance, context.getBean(dep));
+        autowiredFields.forEach((f, dep) -> {
+            SpringUtils.setField(f, beanInstance, dep.extract(context));
         });
-        autowiredMethods.forEach((m,deps)->{
-            SpringUtils.invoke(m,beanInstance, context.getBeans(deps.toArray(new String[0])));
+        autowiredMethods.forEach((m, deps) -> {
+            SpringUtils.invoke(m, beanInstance, deps.stream().map(dep -> dep.extract(context)).toArray());
         });
         beanInjectionCompleted = true;
     }
 
-    public void callPostConstruct(){
-        if(beanInitialized){
+    public void callPostConstruct() {
+        if (beanInitialized) {
             return;
         }
-       initMethods.forEach(m->{
-           SpringUtils.invoke(m, beanInstance);
-       });
-       beanInitialized = true;
+        initMethods.forEach(m -> {
+            SpringUtils.invoke(m, beanInstance);
+        });
+        beanInitialized = true;
     }
 
     public void createInstance() {
@@ -132,11 +134,66 @@ public class BeanDefinition {
 
     /**
      * 获取方法或构造函数参数代表的依赖项名称
+     *
      * @param e
      * @return
      */
     private List<String> getParameterDependencies(Executable e) {
         return Arrays.stream(e.getParameterTypes()).map(p -> SpringUtils.getBeanName(p, p.getName())).toList();
+    }
+
+    private List<BeanExtractor> getParameterInjectors(Executable e) {
+        return Arrays.stream(e.getParameterTypes()).map(p -> {
+            String beanName = SpringUtils.getBeanName(p, p.getName());
+            if (p.isAnnotationPresent(Autowired.class)) {
+                return (BeanExtractor) context -> context.getBean(beanName);
+            } else {//@Value
+                return getValueExtractor(p, beanName);
+            }
+        }).toList();
+    }
+
+    private Object convert(String value, Function<String, Object> converter) {
+        Optional<String> optionalValue = Optional.ofNullable(value);
+        return optionalValue.map(converter).orElse(null);
+    }
+
+    /**
+     * 可根据类型对值进行转换
+     *
+     * @param clazz
+     * @param valueExpression
+     * @return
+     */
+    private BeanExtractor getValueExtractor(Class<?> clazz, String valueExpression) {
+        return context -> {
+            String value = (String) context.getBean(valueExpression);
+            if (int.class.isAssignableFrom(clazz) || Integer.class.isAssignableFrom(clazz)) {
+                return convert(value, Integer::parseInt);
+            }
+            if (short.class.isAssignableFrom(clazz) || Short.class.isAssignableFrom(clazz)) {
+                return convert(value, Short::parseShort);
+            }
+            if (long.class.isAssignableFrom(clazz) || Long.class.isAssignableFrom(clazz)) {
+                return convert(value, Long::parseLong);
+            }
+            if (float.class.isAssignableFrom(clazz) || Float.class.isAssignableFrom(clazz)) {
+                return convert(value, Float::parseFloat);
+            }
+            if (double.class.isAssignableFrom(clazz) || Double.class.isAssignableFrom(clazz)) {
+                return convert(value, Double::parseDouble);
+            }
+            if (byte.class.isAssignableFrom(clazz) || Byte.class.isAssignableFrom(clazz)) {
+                return convert(value, Byte::parseByte);
+            }
+            if (boolean.class.isAssignableFrom(clazz) || Boolean.class.isAssignableFrom(clazz)) {
+                return convert(value, Boolean::parseBoolean);
+            }
+            if (char.class.isAssignableFrom(clazz) || Character.class.isAssignableFrom(clazz)) {
+                return convert(value, v -> v.charAt(0));
+            }
+            return value;
+        };
     }
 
     /**
@@ -146,16 +203,27 @@ public class BeanDefinition {
         //@Autowired Field依赖
         autowiredFields = Arrays.stream(this.type.getDeclaredFields())
                 .filter(f -> f.isAnnotationPresent(Autowired.class))
-                .collect(Collectors.toMap(f -> f, f -> SpringUtils.getBeanName(f, f.getType().getName())));
+                .collect(Collectors.toMap(f -> f, f -> {
+                    String name = SpringUtils.getBeanName(f, f.getType().getName());
+                    dependencies.add(name);
+                    return context -> context.getBean(name);
+                }));
         //@Value Field依赖
-        Map<Field, String> valueFields = Arrays.stream(this.type.getDeclaredFields())
+        Map<Field, BeanExtractor> valueFields = Arrays.stream(this.type.getDeclaredFields())
                 .filter(f -> f.isAnnotationPresent(Value.class))
-                .collect(Collectors.toMap(f -> f, f -> f.getAnnotation(Value.class).value()));
+                .collect(Collectors.toMap(f -> f, f -> {
+                    String valueExpression = f.getAnnotation(Value.class).value();
+                    dependencies.add(valueExpression);
+                    return getValueExtractor(f.getType(), valueExpression);
+                }));
         autowiredFields.putAll(valueFields);
         //@Autowired方法的参数依赖
         autowiredMethods = Arrays.stream(this.type.getDeclaredMethods())
                 .filter(m -> m.isAnnotationPresent(Autowired.class))
-                .collect(Collectors.toMap(m -> m, m -> getParameterDependencies(m)));
+                .collect(Collectors.toMap(m -> m, m -> {
+                    dependencies.addAll(getParameterDependencies(m));
+                    return getParameterInjectors(m);
+                }));
         initMethods = Arrays.stream(this.type.getDeclaredMethods())
                 .filter(m -> m.isAnnotationPresent(PostConstruct.class))
                 .toList();
@@ -164,15 +232,9 @@ public class BeanDefinition {
                     .filter(c -> c.isAnnotationPresent(Autowired.class))
                     .findFirst()
                     .ifPresent(c -> {
+                        dependencies.addAll(getParameterDependencies(c));
                         constructor = c;
                     });
-        }
-
-        dependencies.addAll(autowiredFields.values());
-        dependencies.addAll(autowiredMethods.values().stream().flatMap(Collection::stream).toList());
-
-        if (constructor != null) {
-            dependencies.addAll(getParameterDependencies(constructor));
         }
     }
 }

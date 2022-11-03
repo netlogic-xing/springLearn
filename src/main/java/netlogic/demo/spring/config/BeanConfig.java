@@ -23,10 +23,14 @@ public class BeanConfig {
      */
     private Map<String, BeanDefinition> beanDefinitions = new HashMap<>();
 
-    private Context context = new Context();
+    private Context context;
     private Properties properties = new Properties();
+    public BeanConfig(Class<?> configClass){
+        this(configClass, null);
+    }
+    public BeanConfig(Class<?> configClass, Context parent) {
+        context = new Context(parent);
 
-    public BeanConfig(Class<?> configClass) {
         // Add bean defined within the config class
         beanDefinitions.putAll(buildBeanDefinitionsFromConfigClass(configClass));
 
