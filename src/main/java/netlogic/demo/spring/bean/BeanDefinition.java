@@ -144,6 +144,11 @@ public class BeanDefinition {
         return Arrays.stream(e.getParameterTypes()).map(p -> SpringUtils.getBeanName(p, p.getName())).toList();
     }
 
+    /**
+     * 方法参数和构造函数参数的autowired默认可以省略
+     * @param e
+     * @return
+     */
     private List<BeanInjectionInfo> getParameterInjectionInfos(Executable e) {
         return Arrays.stream(e.getParameterTypes()).map(p -> {
             String beanName = SpringUtils.getBeanName(p, p.getName());
@@ -151,6 +156,9 @@ public class BeanDefinition {
                 return new BeanInjectionInfo(beanName, false,
                         ValueExtractors.getValueExtractor(p, beanName),
                         p.getAnnotation(Value.class).defaultValue());
+            }
+            if(p.isAnnotationPresent(Autowired.class)){
+                return new BeanInjectionInfo(beanName, p.getAnnotation(Autowired.class).required());
             }
             return new BeanInjectionInfo(beanName);
 
@@ -165,9 +173,10 @@ public class BeanDefinition {
         autowiredFields = Arrays.stream(this.type.getDeclaredFields())
                 .filter(f -> f.isAnnotationPresent(Autowired.class))
                 .collect(Collectors.toMap(f -> f, f -> {
+                    Autowired autowired = f.getAnnotation(Autowired.class);
                     String name = SpringUtils.getBeanName(f, f.getType().getName());
                     dependencies.add(name);
-                    return new BeanInjectionInfo(name);
+                    return new BeanInjectionInfo(name, autowired.required());
                 }));
         //@Value Field依赖
         Map<Field, BeanInjectionInfo> valueFields = Arrays.stream(this.type.getDeclaredFields())
@@ -205,7 +214,9 @@ public class BeanDefinition {
         private BeanInjectionInfo(String name) {
             this(name, true, context -> context.getBean(name), null);
         }
-
+        private BeanInjectionInfo(String name, boolean required){
+            this(name,required, context -> context.getBean(name), null);
+        }
         public void setBeanValue(Context context, Consumer<Object> assigner) {
             Object val = getVal(context);
             if (val == null && required) {
