@@ -19,7 +19,7 @@ public class JettyServer {
     private Server server;
     private ServletContextHandler servletHandler = new ServletContextHandler(ServletContextHandler.SESSIONS);
     @Value("spring.server.port")
-    private int port = 8090;
+    private int port = 8080;
 
     public void start() throws Exception {
         server = new Server();

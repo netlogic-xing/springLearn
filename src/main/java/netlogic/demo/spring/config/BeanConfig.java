@@ -24,38 +24,41 @@ public class BeanConfig {
     private Map<String, BeanDefinition> beanDefinitions = new HashMap<>();
 
     private Context context;
-    private Properties properties = new Properties();
-    public BeanConfig(Class<?> configClass){
-        this(configClass, null);
-    }
-    public BeanConfig(Class<?> configClass, Context parent) {
-        context = new Context(parent);
 
+    public BeanConfig(Class<?> configClass) {
+        this(configClass, null, null);
+    }
+
+    public BeanConfig(Class<?> configClass, Context parent) {
+        this(configClass, parent, null);
+    }
+
+    public BeanConfig(Class<?> configClass, String initProperties) {
+        this(configClass, null, initProperties);
+    }
+    public BeanConfig(String initProperties){
+        this(null,  null,  initProperties);
+    }
+    public BeanConfig(Class<?> configClass, Context parent, String initPropertiesFile) {
+        context = new Context(parent);
+        if(!Strings.isNullOrEmpty(initPropertiesFile)){
+            addPropertiesToContext(initPropertiesFile);
+        }
+        if(configClass == null){
+            return;
+        }
         // Add bean defined within the config class
         beanDefinitions.putAll(buildBeanDefinitionsFromConfigClass(configClass));
-
 
         Configuration configuration = configClass.getAnnotation(Configuration.class);
         if (configuration == null) {
             return;
         }
         //处理注入的属性文件
-        String[] propertiesURIs = configuration.properties();
-        Arrays.stream(propertiesURIs).filter(uri -> !Strings.isNullOrEmpty(uri)).forEach(uri -> {
-            if(uri.startsWith("classpath:")){
-                uri = uri.substring("classpath:".length());
-                try {
-                    properties.load(this.getClass().getResourceAsStream(uri));
-                } catch (IOException e) {
-                    throw new PropertiesLoadException(e);
-                }
-            }
+        Arrays.stream(configuration.properties()).filter(uri -> !Strings.isNullOrEmpty(uri)).forEach(uri -> {
+            addPropertiesToContext(uri);
         });
 
-        //add properties
-        properties.forEach((key, val)->{
-            addBean((String) key, val);
-        });
 
         //Add bean from package
         Arrays.stream(configuration.scanPackages()).map(p -> buildBeanDefinitionsFromPackage(p)).forEach(bd -> {
@@ -87,7 +90,7 @@ public class BeanConfig {
     }
 
     private BeanDefinition getBeanDefinition(String name) {
-        if(!beanDefinitions.containsKey(name)){
+        if (!beanDefinitions.containsKey(name)) {
             throw new BeanNotFoundException(name);
         }
         return beanDefinitions.get(name);
@@ -121,6 +124,23 @@ public class BeanConfig {
                 .collect(Collectors.toMap(b -> b.getName(), b -> b));
     }
 
+    private void addPropertiesToContext(String propertiesFile) {
+        Properties properties = new Properties();
+        if (propertiesFile.startsWith("classpath:")) {
+            propertiesFile = propertiesFile.substring("classpath:".length());
+            try {
+                properties.load(this.getClass().getResourceAsStream(propertiesFile));
+                //add properties
+                properties.forEach((key, val) -> {
+                    addBean((String) key, val);
+                });
+
+            } catch (IOException e) {
+                throw new PropertiesLoadException(e);
+            }
+        }
+    }
+
     private Map<String, BeanDefinition> buildBeanDefinitionsFromConfigClass(Class<?> configClass) {
         BeanDefinition root = new BeanDefinition(configClass);
         root.createInstance();
@@ -142,19 +162,41 @@ public class BeanConfig {
     }
 
     /**
-     * Add bean to context directly. Used for some special objects.
+     * Add bean to context directly. Used for some special objects.Usually, this bean will be autowired into other beans.
      *
      * @param name
      * @param bean
      */
     public void addBean(String name, Object bean) {
-        beanDefinitions.put(name, new BeanDefinition(name, bean.getClass(), new Class[0], () -> bean));
+        putBean(name, bean);
+    }
+
+    private BeanDefinition putBean(String name, Object bean){
+        BeanDefinition bd = new BeanDefinition(name, bean.getClass(), new Class[0], () -> bean);
+        beanDefinitions.put(name, bd);
+        return bd;
     }
 
     public void addBean(Object bean) {
         addBean(bean.getClass().getName(), bean);
     }
 
+    /**
+     * Add bean to context directly and autowire the bean. Usually, used after context is built.
+     * @param name
+     * @param bean
+     */
+    public void addBeanAndAutowire(String name, Object bean){
+       BeanDefinition bd = putBean(name, bean);
+       bd.createInstance(context);
+       bd.callAutowiredMethods(context);
+       bd.callPostConstruct();
+    }
+
+
+    public void addBeanAndAutowire(Object bean){
+        this.addBeanAndAutowire(bean.getClass().getName(), bean);
+    }
     public Context getContext() {
         return context;
     }

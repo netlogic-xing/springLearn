@@ -12,7 +12,7 @@ import javax.servlet.ServletContext;
 @WebConfiguration
 @Configuration(scanPackages = "netlogic.demo.spring.web.example.controllers")
 public class Main extends WebApplication {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         Main main = new Main();
         main.start();
     }

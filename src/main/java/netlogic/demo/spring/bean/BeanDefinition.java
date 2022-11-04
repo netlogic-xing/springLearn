@@ -8,7 +8,6 @@ import netlogic.demo.spring.util.SpringUtils;
 
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -148,53 +147,11 @@ public class BeanDefinition {
             if (p.isAnnotationPresent(Autowired.class)) {
                 return (BeanExtractor) context -> context.getBean(beanName);
             } else {//@Value
-                return getValueExtractor(p, beanName);
+                return ValueExtractors.getValueExtractor(p, beanName);
             }
         }).toList();
     }
 
-    private Object convert(String value, Function<String, Object> converter) {
-        Optional<String> optionalValue = Optional.ofNullable(value);
-        return optionalValue.map(converter).orElse(null);
-    }
-
-    /**
-     * 可根据类型对值进行转换
-     *
-     * @param clazz
-     * @param valueExpression
-     * @return
-     */
-    private BeanExtractor getValueExtractor(Class<?> clazz, String valueExpression) {
-        return context -> {
-            String value = (String) context.getBean(valueExpression);
-            if (int.class.isAssignableFrom(clazz) || Integer.class.isAssignableFrom(clazz)) {
-                return convert(value, Integer::parseInt);
-            }
-            if (short.class.isAssignableFrom(clazz) || Short.class.isAssignableFrom(clazz)) {
-                return convert(value, Short::parseShort);
-            }
-            if (long.class.isAssignableFrom(clazz) || Long.class.isAssignableFrom(clazz)) {
-                return convert(value, Long::parseLong);
-            }
-            if (float.class.isAssignableFrom(clazz) || Float.class.isAssignableFrom(clazz)) {
-                return convert(value, Float::parseFloat);
-            }
-            if (double.class.isAssignableFrom(clazz) || Double.class.isAssignableFrom(clazz)) {
-                return convert(value, Double::parseDouble);
-            }
-            if (byte.class.isAssignableFrom(clazz) || Byte.class.isAssignableFrom(clazz)) {
-                return convert(value, Byte::parseByte);
-            }
-            if (boolean.class.isAssignableFrom(clazz) || Boolean.class.isAssignableFrom(clazz)) {
-                return convert(value, Boolean::parseBoolean);
-            }
-            if (char.class.isAssignableFrom(clazz) || Character.class.isAssignableFrom(clazz)) {
-                return convert(value, v -> v.charAt(0));
-            }
-            return value;
-        };
-    }
 
     /**
      * 搜集依赖性
@@ -214,7 +171,7 @@ public class BeanDefinition {
                 .collect(Collectors.toMap(f -> f, f -> {
                     String valueExpression = f.getAnnotation(Value.class).value();
                     dependencies.add(valueExpression);
-                    return getValueExtractor(f.getType(), valueExpression);
+                    return ValueExtractors.getValueExtractor(f.getType(), valueExpression);
                 }));
         autowiredFields.putAll(valueFields);
         //@Autowired方法的参数依赖

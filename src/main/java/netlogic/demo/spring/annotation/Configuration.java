@@ -1,17 +1,15 @@
 package netlogic.demo.spring.annotation;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
- * 标注一个JavaConfig类
+ * 标注一个JavaConfig类,此注解类可被继承
  */
 @Target({
         ElementType.TYPE
 })
 @Retention(RetentionPolicy.RUNTIME)
+@Inherited
 public @interface Configuration {
     //指定扫描哪些包，这些包下的@Bean标注的类会被自动定义为bean
     String[] scanPackages();
