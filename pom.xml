@@ -34,6 +34,16 @@
             <groupId>org.thymeleaf</groupId>
             <artifactId>thymeleaf</artifactId>
             <version>3.0.15.RELEASE</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.javassist</groupId>
+                    <artifactId>javassist</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -49,11 +59,12 @@
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
             <version>0.10.2</version>
-        </dependency>
-        <dependency>
-            <groupId>io.github.classgraph</groupId>
-            <artifactId>classgraph</artifactId>
-            <version>4.8.149</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
